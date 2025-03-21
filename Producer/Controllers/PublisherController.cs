@@ -37,7 +37,6 @@ namespace Producer.Controllers
             if (invoice == null) return BadRequest();
             try
             {
-                //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
@@ -71,7 +70,6 @@ namespace Producer.Controllers
             if (payment == null) return BadRequest();
             try
             {
-                //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
@@ -98,17 +96,19 @@ namespace Producer.Controllers
         [Route("exchange-fanout")]
         public async Task Log([FromBody] Log log)
         {
-            //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
-            await channel.ExchangeDeclareAsync(exchange: "exchange-logs", type: ExchangeType.Fanout);
+            // variaveis de definição
+            string exchangeName = "exchange-logs";
+            await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
 
             var message = JsonSerializer.Serialize(log, options: new JsonSerializerOptions { WriteIndented = true });
-
             var body = Encoding.UTF8.GetBytes(message);
-            await channel.BasicPublishAsync(exchange: "exchange-logs", routingKey: string.Empty, body: body);
+
+            // ExchangeType.Fanout não possui routingKey, entrga pra todas as fila do exchange
+            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
         }
-       
+
     }
 }

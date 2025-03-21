@@ -6,13 +6,17 @@ var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserN
 using var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
 
-await channel.ExchangeDeclareAsync(exchange: "logs", type: ExchangeType.Fanout);
+// variaveis de definição
+string queueName = "fila-log";
+string exchangeName = "exchange-logs";
 
-// declare a server-named 
+//Cria o exchange caso não exista.
+//ExchangeType.Fanout não existe routingKey
+await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
 
-await channel.QueueDeclareAsync(queue: "fila-log", durable: true, exclusive: false, autoDelete: false);
+// Cria a fila caso não exista
+await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
 
-await channel.QueueBindAsync(queue: "fila-log", exchange: "exchange-logs", routingKey: string.Empty);
 
 Console.WriteLine(" [*] Waiting for logs.");
 
