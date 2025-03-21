@@ -15,11 +15,15 @@ string exchangeName = "exchange-logs";
 await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
 
 // Cria a fila caso não exista
-await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+QueueDeclareOk queueDeclareResult = await channel.QueueDeclareAsync();
+queueName = queueDeclareResult.QueueName;
+await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: string.Empty);
+
 
 
 Console.WriteLine(" [*] Waiting for logs.");
 
+// Worker real
 var consumer = new AsyncEventingBasicConsumer(channel);
 consumer.ReceivedAsync += (model, ea) =>
 {
@@ -29,7 +33,7 @@ consumer.ReceivedAsync += (model, ea) =>
     return Task.CompletedTask;
 };
 
-await channel.BasicConsumeAsync("log", autoAck: true, consumer: consumer);
+await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
 
 Console.WriteLine(" Press [enter] to exit.");
 Console.ReadLine();

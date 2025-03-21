@@ -106,7 +106,25 @@ namespace Producer.Controllers
             var message = JsonSerializer.Serialize(log, options: new JsonSerializerOptions { WriteIndented = true });
             var body = Encoding.UTF8.GetBytes(message);
 
-            // ExchangeType.Fanout não possui routingKey, entrga pra todas as fila do exchange
+            // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
+            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
+        }
+
+        [HttpPost]
+        [Route("exchange-topic")]
+        public async Task Log([FromBody] string message)
+        {
+            using var connection = await factory.CreateConnectionAsync();
+            using var channel = await connection.CreateChannelAsync();
+
+            // variaveis de definição
+            string exchangeName = "exchange-logs";
+            await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic);
+
+            //var message = JsonSerializer.Serialize(message, options: new JsonSerializerOptions { WriteIndented = true });
+            var body = Encoding.UTF8.GetBytes(message);
+
+            // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
             await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
         }
 
