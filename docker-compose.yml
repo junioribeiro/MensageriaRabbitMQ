@@ -1,0 +1,17 @@
+networks:
+  app-network:
+    name: app-network
+    driver: bridge
+
+volumes:
+  rabbitmq_data:   
+
+services:
+  producer:
+    image: ${DOCKER_REGISTRY-}producer
+    build:
+      context: .
+      dockerfile: Producer/Dockerfile
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine

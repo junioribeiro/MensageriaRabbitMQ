@@ -16,14 +16,19 @@ string queueName = "fila-nfe";
 string exchangeName = "exchange-order";
 string bindRoutingKey = "nfe";
 
-// declara o exchange caso não exista
-await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Direct);
+#region Criação do Exchange, Queue e o Bind somente uma vez
+// Cria o exchange caso não exista no servidor
+// exchange é quem recebe a mensagem do produtor
+await channel.ExchangeDeclareAsync(exchange: exchangeName, durable: true, type: ExchangeType.Direct);
 
-//declara a fila
+//cria a fila, caso não exista no servidor
 await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
 
-// cria um bind entre a fila e o exchange nomeando uma Routing-key como payment
+// cria um bind entre a fila e o Exchange nomeando uma Routing-key como payment
+// QueueBindAsync diz para Exchange qual fila pertence a routingKey
+// routingKey e o nome desta conexão do exchange com a fila
 await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: bindRoutingKey);
+#endregion
 
 Console.WriteLine(" [*] Waiting for logs.");
 

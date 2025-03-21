@@ -1,6 +1,7 @@
 ﻿using Business.Models;
 using Microsoft.AspNetCore.Connections;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
@@ -13,19 +14,30 @@ namespace Producer.Controllers
     [ApiController]
     public class PublisherController : ControllerBase
     {
+        private readonly ConnectionFactory factory;
+        public PublisherController(IOptions<ConnectionFactorySetting> connectionFactorySetting)
+        {
+            factory = new ConnectionFactory
+            {
+                HostName = connectionFactorySetting.Value.HostName,
+                Port = connectionFactorySetting.Value.Port,
+                UserName = connectionFactorySetting.Value.UserName,
+                Password = connectionFactorySetting.Value.Password
+            };
+        }
         [HttpPost()]
         [Route("exchange-direct/order/invoice")]
         [
-             ProducesResponseType(StatusCodes.Status200OK),
+             ProducesResponseType(StatusCodes.Status202Accepted),
              ProducesResponseType(StatusCodes.Status400BadRequest),
              ProducesResponseType(StatusCodes.Status500InternalServerError)
          ]
-        public async Task<IActionResult> Payment(Invoice invoice)
+        public async Task<IActionResult> Invoice(Invoice invoice)
         {
             if (invoice == null) return BadRequest();
             try
             {
-                var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
+                //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
@@ -37,7 +49,7 @@ namespace Producer.Controllers
 
                 var body = Encoding.UTF8.GetBytes(message);
                 await channel.BasicPublishAsync(exchange: exchangeName, routingKey: bindRoutingKey, body: body);
-                return Ok();
+                return Accepted(invoice);
             }
             catch (Exception ex)
             {
@@ -50,7 +62,7 @@ namespace Producer.Controllers
         [HttpPost()]
         [Route("exchange-direct/order/payment")]
         [
-            ProducesResponseType(StatusCodes.Status200OK),
+            ProducesResponseType(StatusCodes.Status202Accepted),
             ProducesResponseType(StatusCodes.Status400BadRequest),
             ProducesResponseType(StatusCodes.Status500InternalServerError)
         ]
@@ -59,19 +71,21 @@ namespace Producer.Controllers
             if (payment == null) return BadRequest();
             try
             {
-                var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
+                //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
                 string exchangeName = "exchange-order";
                 string bindRoutingKey = "payment";
 
+                // se não existir ele criar o exchange, caso já existe não precisa criar. a fila tambem cria
                 await channel.ExchangeDeclareAsync(exchange: exchangeName, durable: true, type: ExchangeType.Direct);
                 var message = JsonSerializer.Serialize(payment, options: new JsonSerializerOptions { WriteIndented = true });
 
                 var body = Encoding.UTF8.GetBytes(message);
+                // o routingKey diz para o exchange para qual fila vai a mensagem
                 await channel.BasicPublishAsync(exchange: exchangeName, routingKey: bindRoutingKey, body: body);
-                return Ok();
+                return Accepted(payment);
             }
             catch (Exception ex)
             {
@@ -80,12 +94,11 @@ namespace Producer.Controllers
 
         }
 
-        // POST api/<PublisherController>
         [HttpPost]
         [Route("exchange-fanout")]
         public async Task Log([FromBody] Log log)
         {
-            var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
+            //var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
@@ -96,17 +109,6 @@ namespace Producer.Controllers
             var body = Encoding.UTF8.GetBytes(message);
             await channel.BasicPublishAsync(exchange: "exchange-logs", routingKey: string.Empty, body: body);
         }
-
-        // PUT api/<PublisherController>/5
-        [HttpPut("{id}")]
-        public void Put(int id, [FromBody] string value)
-        {
-        }
-
-        // DELETE api/<PublisherController>/5
-        [HttpDelete("{id}")]
-        public void Delete(int id)
-        {
-        }
+       
     }
 }
