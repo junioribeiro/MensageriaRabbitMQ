@@ -1,6 +1,8 @@
-﻿using RabbitMQ.Client;
+﻿using Business.Models;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using System.Text.Json;
 
 // configura os dados de servidor
 var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
@@ -36,10 +38,20 @@ Console.WriteLine(" [*] Waiting for logs.");
 var consumer = new AsyncEventingBasicConsumer(channel);
 consumer.ReceivedAsync += (model, ea) =>
 {
-    byte[] body = ea.Body.ToArray();
-    var message = Encoding.UTF8.GetString(body);
-    Console.WriteLine($" [x] {message}");
-    return Task.CompletedTask;
+    try
+    {
+        byte[] body = ea.Body.ToArray();
+        var message = Encoding.UTF8.GetString(body);
+        Invoice nfe = JsonSerializer.Deserialize<Invoice>(message)!;
+        Console.WriteLine($" [x] {message}");
+        channel.BasicAckAsync(ea.DeliveryTag, false);
+        return Task.CompletedTask;
+    }
+    catch (Exception)
+    {
+        channel.BasicNackAsync(ea.DeliveryTag, false, true);
+    }
+
 };
 
 // informa ao exchange que deu tudo certo no consumo da mensagem

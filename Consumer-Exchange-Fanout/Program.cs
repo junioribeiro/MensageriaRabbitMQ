@@ -1,6 +1,8 @@
-﻿using RabbitMQ.Client;
+﻿using Business.Models;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
+using System.Text.Json;
 
 var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserName = "guest", Password = "guest" };
 using var connection = await factory.CreateConnectionAsync();
@@ -26,15 +28,27 @@ Console.WriteLine(" [*] Waiting for logs.");
 
 // Worker real
 var consumer = new AsyncEventingBasicConsumer(channel);
-consumer.ReceivedAsync += (model, ea) =>
+
+consumer.ReceivedAsync += async (model, ea) =>
 {
-    byte[] body = ea.Body.ToArray();
-    var message = Encoding.UTF8.GetString(body);
-    Console.WriteLine($" [x] {message}");
-    return Task.CompletedTask;
+    try
+    {
+        byte[] body = ea.Body.ToArray();
+        var message = Encoding.UTF8.GetString(body);
+        Log log = JsonSerializer.Deserialize<Log>(message)!;
+        Console.WriteLine($" [x] {message}");
+        await channel.BasicAckAsync(ea.DeliveryTag, false);
+        await Task.CompletedTask;
+    }
+    catch (Exception)
+    {
+        await channel.BasicNackAsync(ea.DeliveryTag, false, false);
+    }
+
 };
 
-await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
+await channel.BasicConsumeAsync(queueName, autoAck: false, consumer: consumer);
+
 
 Console.WriteLine(" Press [enter] to exit.");
 Console.ReadLine();
