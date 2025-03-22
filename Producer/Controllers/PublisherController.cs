@@ -40,8 +40,14 @@ namespace Producer.Controllers
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
+                #region Criação da Fila caso não tenha declarado
+                // variaveis de definição
+                string queueName = "fila-nfe";
                 string exchangeName = "exchange-order";
                 string bindRoutingKey = "nfe";
+                //cria a fila, caso não exista no servidor
+                await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+                #endregion
 
                 await channel.ExchangeDeclareAsync(exchange: exchangeName, durable: true, type: ExchangeType.Direct);
                 var message = JsonSerializer.Serialize(invoice, options: new JsonSerializerOptions { WriteIndented = true });
@@ -73,8 +79,14 @@ namespace Producer.Controllers
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
+                #region Criação da Fila caso não tenha declarado
+                // variaveis de definição
+                string queueName = "fila-payments";
                 string exchangeName = "exchange-order";
                 string bindRoutingKey = "payment";
+                //cria a fila, caso não exista no servidor
+                await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+                #endregion
 
                 // se não existir ele criar o exchange, caso já existe não precisa criar. a fila tambem cria
                 await channel.ExchangeDeclareAsync(exchange: exchangeName, durable: true, type: ExchangeType.Direct);
@@ -89,18 +101,25 @@ namespace Producer.Controllers
             {
                 return Problem(detail: ex.Message, statusCode: 500);
             }
-
         }
 
         [HttpPost]
         [Route("exchange-fanout")]
-        public async Task Log([FromBody] Log log)
+        public async Task<IActionResult> Log([FromBody] Log log)
         {
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
+            #region Criação da Fila caso não tenha declarado
             // variaveis de definição
+            string queueName = "fila-log";
             string exchangeName = "exchange-logs";
+            //cria a fila, caso não exista no servidor
+            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+            #endregion
+
+            //cria a fila, caso não exista no servidor
+            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
             await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
 
             var message = JsonSerializer.Serialize(log, options: new JsonSerializerOptions { WriteIndented = true });
@@ -108,24 +127,34 @@ namespace Producer.Controllers
 
             // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
             await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
+
+            return Accepted(log);
         }
 
         [HttpPost]
         [Route("exchange-topic")]
-        public async Task Log([FromBody] string message)
+        public async Task<IActionResult> Log([FromBody] string message)
         {
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
+            #region Criação da Fila caso não tenha declarado
             // variaveis de definição
-            string exchangeName = "exchange-logs";
+            string queueName = "fila-nfe";
+            string exchangeName = "exchange-order";
+            string bindRoutingKey = "nfe";
+            //cria a fila, caso não exista no servidor
+            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+            #endregion
+
             await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic);
 
             //var message = JsonSerializer.Serialize(message, options: new JsonSerializerOptions { WriteIndented = true });
             var body = Encoding.UTF8.GetBytes(message);
 
             // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
-            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
+            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: bindRoutingKey, body: body);
+            return Accepted(message);
         }
 
     }

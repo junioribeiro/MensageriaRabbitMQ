@@ -14,12 +14,13 @@ string exchangeName = "exchange-logs";
 //ExchangeType.Fanout não existe routingKey
 await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
 
-// Cria a fila caso não exista
-QueueDeclareOk queueDeclareResult = await channel.QueueDeclareAsync();
-queueName = queueDeclareResult.QueueName;
+// Cria a fila Temporaria, sera excluida depois de desconecta do servidor
+// ** QueueDeclareOk queueDeclareResult = await channel.QueueDeclareAsync();
+// ** queueName = queueDeclareResult.QueueName;
+
+//cria a fila, caso não exista no servidor
+await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
 await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: string.Empty);
-
-
 
 Console.WriteLine(" [*] Waiting for logs.");
 
