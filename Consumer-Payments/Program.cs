@@ -35,24 +35,28 @@ await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKe
 
 Console.WriteLine(" [*] Waiting for logs.");
 
+// **Baleceamento** definindo prefetch a quantidade de mensagem por vez antes de iniciar o escalonamento round-robin
+//  global: false message per consumer, true per channel
+// prefetchCount quantidade no buffer por vez
+await channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 5, global: false);
 // Criando o consumer para ficar excuando o envento
 var consumer = new AsyncEventingBasicConsumer(channel);
-consumer.ReceivedAsync += (model, ea) =>
+consumer.ReceivedAsync += async (model, ea) =>
 {
-	try
-	{
+    try
+    {
         byte[] body = ea.Body.ToArray();
         var message = Encoding.UTF8.GetString(body);
         Payment payment = JsonSerializer.Deserialize<Payment>(message)!;
         Console.WriteLine($" [x] {message}");
-        channel.BasicAckAsync(ea.DeliveryTag,false);
-        return Task.CompletedTask;
+        await channel.BasicAckAsync(ea.DeliveryTag, false);
     }
-	catch (Exception)
-	{
-        channel.BasicNackAsync(ea.DeliveryTag, false, true);		
-	}
-  
+    catch (Exception)
+    {
+        await channel.BasicNackAsync(ea.DeliveryTag, false, true);
+    }
+    await Task.CompletedTask;
+
 };
 
 // informa ao exchange que deu tudo certo no consumo da mensagem

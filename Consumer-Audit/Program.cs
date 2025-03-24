@@ -34,7 +34,7 @@ Console.WriteLine(" [*] Waiting for logs.");
 
 // Criando o consumer para ficar excuando o envento
 var consumer = new AsyncEventingBasicConsumer(channel);
-consumer.ReceivedAsync += (model, ea) =>
+consumer.ReceivedAsync += async (model, ea) =>
 {
     try
     {
@@ -42,14 +42,13 @@ consumer.ReceivedAsync += (model, ea) =>
         var message = Encoding.UTF8.GetString(body);
         Payment payment = JsonSerializer.Deserialize<Payment>(message)!;
         Console.WriteLine($" [x] {message}");
-        channel.BasicAckAsync(ea.DeliveryTag, false);
-        return Task.CompletedTask;
+        await channel.BasicAckAsync(ea.DeliveryTag, false);
     }
     catch (Exception)
     {
-        channel.BasicNackAsync(ea.DeliveryTag, false, true);
+        await channel.BasicNackAsync(ea.DeliveryTag, false, true);
     }
-
+    await Task.CompletedTask;
 };
 
 // informa ao exchange que deu tudo certo no consumo da mensagem

@@ -79,22 +79,37 @@ namespace Producer.Controllers
                 using var connection = await factory.CreateConnectionAsync();
                 using var channel = await connection.CreateChannelAsync();
 
-                #region Criação da Fila caso não tenha declarado
+                #region Setup
                 // variaveis de definição
                 string queueName = "fila-payments";
+                string queueAudit = "fila-audit";
                 string exchangeName = "exchange-order";
                 string bindRoutingKey = "payment";
-                //cria a fila, caso não exista no servidor
-                await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
-                #endregion
+
+                // pode mandar um rota pra 2 filas
+                // pode mandar 2 rotas pra uma fila
 
                 // se não existir ele criar o exchange, caso já existe não precisa criar. a fila tambem cria
                 await channel.ExchangeDeclareAsync(exchange: exchangeName, durable: true, type: ExchangeType.Direct);
-                var message = JsonSerializer.Serialize(payment, options: new JsonSerializerOptions { WriteIndented = true });
 
+                //cria a fila, caso não exista no servidor
+                await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+                await channel.QueueDeclareAsync(queue: queueAudit, durable: true, exclusive: false, autoDelete: false);
+                // Binding conecta a fila ao exchange
+                await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: bindRoutingKey);
+                await channel.QueueBindAsync(queue: queueAudit, exchange: exchangeName, routingKey: bindRoutingKey);
+                #endregion
+
+                #region Setup Message
+                var message = JsonSerializer.Serialize(payment, options: new JsonSerializerOptions { WriteIndented = true });
                 var body = Encoding.UTF8.GetBytes(message);
-                // o routingKey diz para o exchange para qual fila vai a mensagem
+                #endregion
+
+                #region Publish Message
+                // o routingKey diz para o exchange para qual fila vai a mensagem com o bind
                 await channel.BasicPublishAsync(exchange: exchangeName, routingKey: bindRoutingKey, body: body);
+                #endregion
+
                 return Accepted(payment);
             }
             catch (Exception ex)
@@ -110,23 +125,34 @@ namespace Producer.Controllers
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
-            #region Criação da Fila caso não tenha declarado
+            #region Setup
             // variaveis de definição
-            string queueName = "fila-log";
+            string queueA = "fila-A";
+            string queueB = "fila-B";
+            string queueC = "fila-C";
             string exchangeName = "exchange-logs";
+
+            //Cria o Exchange caso não exista no servidor
+            await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
             //cria a fila, caso não exista no servidor
-            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: queueA, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: queueB, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: queueC, durable: true, exclusive: false, autoDelete: false);
+            // Binding conecta a fila ao exchange
+            await channel.QueueBindAsync(queue: queueA, exchange: exchangeName, routingKey: string.Empty);
+            await channel.QueueBindAsync(queue: queueB, exchange: exchangeName, routingKey: string.Empty);
+            await channel.QueueBindAsync(queue: queueC, exchange: exchangeName, routingKey: string.Empty);
             #endregion
 
-            //cria a fila, caso não exista no servidor
-            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
-            await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fanout);
-
+            #region Setup Message
             var message = JsonSerializer.Serialize(log, options: new JsonSerializerOptions { WriteIndented = true });
             var body = Encoding.UTF8.GetBytes(message);
+            #endregion
 
+            #region Publish Message
             // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
             await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
+            #endregion
 
             return Accepted(log);
         }

@@ -9,7 +9,7 @@ using var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
 
 // variaveis de definição
-string queueName = "fila-log";
+string queueA = "fila-A";
 string exchangeName = "exchange-logs";
 
 //Cria o exchange caso não exista.
@@ -21,8 +21,8 @@ await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fa
 // ** queueName = queueDeclareResult.QueueName;
 
 //cria a fila, caso não exista no servidor
-await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
-await channel.QueueBindAsync(queue: queueName, exchange: exchangeName, routingKey: string.Empty);
+await channel.QueueDeclareAsync(queue: queueA, durable: true, exclusive: false, autoDelete: false);
+await channel.QueueBindAsync(queue: queueA, exchange: exchangeName, routingKey: string.Empty);
 
 Console.WriteLine(" [*] Waiting for logs.");
 
@@ -38,16 +38,15 @@ consumer.ReceivedAsync += async (model, ea) =>
         Log log = JsonSerializer.Deserialize<Log>(message)!;
         Console.WriteLine($" [x] {message}");
         await channel.BasicAckAsync(ea.DeliveryTag, false);
-        await Task.CompletedTask;
     }
     catch (Exception)
     {
         await channel.BasicNackAsync(ea.DeliveryTag, false, false);
     }
-
+    await Task.CompletedTask;
 };
 
-await channel.BasicConsumeAsync(queueName, autoAck: false, consumer: consumer);
+await channel.BasicConsumeAsync(queueA, autoAck: false, consumer: consumer);
 
 
 Console.WriteLine(" Press [enter] to exit.");
