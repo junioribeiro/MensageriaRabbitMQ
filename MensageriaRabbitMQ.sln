@@ -5,7 +5,7 @@ VisualStudioVersion = 17.12.35521.163
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Producer", "Producer\Producer.csproj", "{5B876757-1CF4-4714-BFBA-E49A42782C40}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Consumer-Exchange-Fanout", "Consumer-Exchange-Fanout\Consumer-Exchange-Fanout.csproj", "{9DCEEFA5-698F-48B2-A5B6-BBDF2FF630BA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilaA-Exchange-Fanout", "Consumer-Exchange-Fanout\FilaA-Exchange-Fanout.csproj", "{9DCEEFA5-698F-48B2-A5B6-BBDF2FF630BA}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Business", "Business\Business.csproj", "{AD431D89-3A51-47B7-AFC3-D5F2E3359320}"
 EndProject
@@ -21,6 +21,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Source", "Source", "{8EC462
 	EndProjectSection
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilaB-Exchange-Fanout", "..\FilaB-Exchange-Fanout\FilaB-Exchange-Fanout.csproj", "{4883DC11-E822-4382-BDE5-73BDAF522118}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilaC-Exchange-Fanout", "..\FilaC-Exchange-Fanout\FilaC-Exchange-Fanout.csproj", "{68E073C5-8367-4C31-8EEC-741A2FAA41A9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadLetter", "..\Task_Queue\DeadLetter.csproj", "{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,6 +62,18 @@ Global
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4883DC11-E822-4382-BDE5-73BDAF522118}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4883DC11-E822-4382-BDE5-73BDAF522118}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4883DC11-E822-4382-BDE5-73BDAF522118}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4883DC11-E822-4382-BDE5-73BDAF522118}.Release|Any CPU.Build.0 = Release|Any CPU
+		{68E073C5-8367-4C31-8EEC-741A2FAA41A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{68E073C5-8367-4C31-8EEC-741A2FAA41A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{68E073C5-8367-4C31-8EEC-741A2FAA41A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{68E073C5-8367-4C31-8EEC-741A2FAA41A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

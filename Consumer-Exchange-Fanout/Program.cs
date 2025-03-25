@@ -8,6 +8,7 @@ var factory = new ConnectionFactory { HostName = "localhost", Port = 5672, UserN
 using var connection = await factory.CreateConnectionAsync();
 using var channel = await connection.CreateChannelAsync();
 
+#region Setup
 // variaveis de definição
 string queueA = "fila-A";
 string exchangeName = "exchange-logs";
@@ -23,12 +24,15 @@ await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Fa
 //cria a fila, caso não exista no servidor
 await channel.QueueDeclareAsync(queue: queueA, durable: true, exclusive: false, autoDelete: false);
 await channel.QueueBindAsync(queue: queueA, exchange: exchangeName, routingKey: string.Empty);
+#endregion
+
 
 Console.WriteLine(" [*] Waiting for logs.");
 
+#region Setup Consumer
 // Worker real
 var consumer = new AsyncEventingBasicConsumer(channel);
-
+await channel.BasicQosAsync(0, 1, false);
 consumer.ReceivedAsync += async (model, ea) =>
 {
     try
@@ -45,6 +49,7 @@ consumer.ReceivedAsync += async (model, ea) =>
     }
     await Task.CompletedTask;
 };
+#endregion
 
 await channel.BasicConsumeAsync(queueA, autoAck: false, consumer: consumer);
 

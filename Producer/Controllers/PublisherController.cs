@@ -183,5 +183,38 @@ namespace Producer.Controllers
             return Accepted(message);
         }
 
+        [HttpPost]
+        [Route("exchange-deadleter")]
+        public async Task<IActionResult> Totalizador(string message)
+        {
+            using var connection = await factory.CreateConnectionAsync();
+            using var channel = await connection.CreateChannelAsync();
+
+            #region Setup
+            // variaveis de definição
+            string queueName = "Totalizador";
+
+            //Declarando a Estrategia de deadletter
+            await channel.ExchangeDeclareAsync(exchange: "DeadLetterExchange", type: ExchangeType.Fanout);
+            await channel.QueueDeclareAsync(queue: "DeadLetterQueue", durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueBindAsync(queue: "DeadLetterQueue", exchange: "DeadLetterExchange", routingKey: string.Empty);
+            var arguments = new Dictionary<string, object>()
+            {
+                { "x-dead-letter-exchange","DeadLetterExchange"}
+            };
+            
+            //cria a fila, caso não exista no servidor
+            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: arguments);
+            #endregion
+
+            #region Publicador
+            var body = Encoding.UTF8.GetBytes(message);
+            // Publica no Exchange padrão
+            await channel.BasicPublishAsync(exchange: "", routingKey: "Totalizador", body: body);
+            #endregion
+
+            return Accepted(message);
+        }
+
     }
 }
