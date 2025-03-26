@@ -159,27 +159,126 @@ namespace Producer.Controllers
 
         [HttpPost]
         [Route("exchange-topic")]
-        public async Task<IActionResult> Log([FromBody] string message)
+        public async Task<IActionResult> Topic([FromBody] string message, string routingKey)
         {
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
 
-            #region Criação da Fila caso não tenha declarado
+            #region Setup
             // variaveis de definição
-            string queueName = "fila-nfe";
-            string exchangeName = "exchange-order";
-            string bindRoutingKey = "nfe";
+            string finance = "finance";
+            string finance_sp = "finance_sp";
+            string finance_sp_1 = "finance_sp_1";
+            string finance_sp_2 = "finance_sp_2";
+            string finance_rj = "finance_rj";
+            string finance_rj_1 = "finance_rj_1";
+            string finance_rj_2 = "finance_rj_2";
+
+            string finance_exchange = "finance_exchange";
+            //Cria o Exchange caso não exista no servidor
+            await channel.ExchangeDeclareAsync(exchange: finance_exchange, type: ExchangeType.Topic);
+
+
             //cria a fila, caso não exista no servidor
-            await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_sp, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_sp_1, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_sp_2, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_rj, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_rj_1, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance_rj_2, durable: true, exclusive: false, autoDelete: false);
+
+            // Binding conecta a fila ao exchange
+            await channel.QueueBindAsync(queue: finance, exchange: finance_exchange, routingKey: "finance");
+            await channel.QueueBindAsync(queue: finance, exchange: finance_exchange, routingKey: "finance.#");
+            await channel.QueueBindAsync(queue: finance_sp, exchange: finance_exchange, routingKey: "finance.sp");
+            await channel.QueueBindAsync(queue: finance_sp, exchange: finance_exchange, routingKey: "finance.sp.*");
+            await channel.QueueBindAsync(queue: finance_sp_1, exchange: finance_exchange, routingKey: "finance.sp.1");
+            await channel.QueueBindAsync(queue: finance_sp_2, exchange: finance_exchange, routingKey: "finance.sp.2");
+            await channel.QueueBindAsync(queue: finance_rj, exchange: finance_exchange, routingKey: "finance.rj");
+            await channel.QueueBindAsync(queue: finance_rj, exchange: finance_exchange, routingKey: "finance.rj.*");
+            await channel.QueueBindAsync(queue: finance_rj_1, exchange: finance_exchange, routingKey: "finance.rj.1");
+            await channel.QueueBindAsync(queue: finance_rj_2, exchange: finance_exchange, routingKey: "finance.rj.2");
             #endregion
 
-            await channel.ExchangeDeclareAsync(exchange: exchangeName, type: ExchangeType.Topic);
-
-            //var message = JsonSerializer.Serialize(message, options: new JsonSerializerOptions { WriteIndented = true });
+            #region Setup Message
             var body = Encoding.UTF8.GetBytes(message);
+            #endregion
 
-            // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
-            await channel.BasicPublishAsync(exchange: exchangeName, routingKey: bindRoutingKey, body: body);
+            #region Publish Message
+            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: routingKey, body: body);
+            #endregion
+
+            return Accepted(message);
+        }
+
+        [HttpPost]
+        [Route("exchange-header")]
+        public async Task<IActionResult> Header([FromBody] string message, [FromHeader] string header)
+        {
+            using var connection = await factory.CreateConnectionAsync();
+            using var channel = await connection.CreateChannelAsync();
+           
+            #region Setup
+            // variaveis de definição
+            string contabilidade = "contabilidade";
+            string financeiro = "financeiro";
+            string logistica = "logistica";
+
+            string finance_exchange = "header_exchange";
+            //Cria o Exchange caso não exista no servidor
+            await channel.ExchangeDeclareAsync(exchange: finance_exchange, type: ExchangeType.Headers);
+
+
+            //cria a fila, caso não exista no servidor
+            await channel.QueueDeclareAsync(queue: contabilidade, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: financeiro, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: logistica, durable: true, exclusive: false, autoDelete: false);
+
+            await channel.QueueBindAsync(
+                queue: contabilidade,
+                exchange: finance_exchange,
+                routingKey: string.Empty,
+                arguments: new Dictionary<string, object?>()
+                           {
+                               { "setor", "contabilidade" }
+                           }
+            );
+            await channel.QueueBindAsync(
+                queue: financeiro,
+                exchange: finance_exchange,
+                routingKey: string.Empty,
+                arguments: new Dictionary<string, object?>()
+                           {
+                               { "setor", "financeiro" }
+                           }
+            );
+            await channel.QueueBindAsync(
+                queue: logistica,
+                exchange: finance_exchange,
+                routingKey: string.Empty,
+                arguments: new Dictionary<string, object?>()
+                           {
+                               { "setor", "logistica" }
+                           }
+            );
+           
+            #endregion
+
+            #region Setup Message
+            var body = Encoding.UTF8.GetBytes(message);
+            #endregion
+
+            #region Publish Message
+            var props = new BasicProperties();
+            props.ContentType = "text/plain";
+            props.Headers = new Dictionary<string, object?>()
+                           {
+                               { "setor", header }
+                           };
+            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: string.Empty, mandatory: true, props, body);
+            #endregion
+
             return Accepted(message);
         }
 
@@ -202,7 +301,7 @@ namespace Producer.Controllers
             {
                 { "x-dead-letter-exchange","DeadLetterExchange"}
             };
-            
+
             //cria a fila, caso não exista no servidor
             await channel.QueueDeclareAsync(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: arguments);
             #endregion
