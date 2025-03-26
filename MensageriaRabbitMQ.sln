@@ -26,7 +26,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilaB-Exchange-Fanout", "Fi
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FilaC-Exchange-Fanout", "FilaC-Exchange-Fanout\FilaC-Exchange-Fanout.csproj", "{68E073C5-8367-4C31-8EEC-741A2FAA41A9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadLetter", "Task_Queue\DeadLetter.csproj", "{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeadLetter", "Exchange-DeadLetter\DeadLetter.csproj", "{7D2AAB23-CF74-47A0-B7BE-90F5B2015A5E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
