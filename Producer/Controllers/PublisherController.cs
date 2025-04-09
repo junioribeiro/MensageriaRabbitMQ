@@ -149,7 +149,7 @@ namespace Producer.Controllers
             var body = Encoding.UTF8.GetBytes(message);
             #endregion
 
-            #region Publish Message
+            #region Publish Message           
             // ExchangeType.Fanout não possui routingKey, entrega pra todas as fila com Bind no exchange
             await channel.BasicPublishAsync(exchange: exchangeName, routingKey: string.Empty, body: body);
             #endregion
@@ -178,9 +178,14 @@ namespace Producer.Controllers
             //Cria o Exchange caso não exista no servidor
             await channel.ExchangeDeclareAsync(exchange: finance_exchange, type: ExchangeType.Topic);
 
+            //Define o TTL direto na declaração da fila ** Tempo de duração da message na fila **
+            var args = new Dictionary<string, object?>()
+            {
+                {"x-message-ttl", 20000 }
+            };
 
             //cria a fila, caso não exista no servidor
-            await channel.QueueDeclareAsync(queue: finance, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue: finance, durable: true, exclusive: false, autoDelete: false, arguments: args);
             await channel.QueueDeclareAsync(queue: finance_sp, durable: true, exclusive: false, autoDelete: false);
             await channel.QueueDeclareAsync(queue: finance_sp_1, durable: true, exclusive: false, autoDelete: false);
             await channel.QueueDeclareAsync(queue: finance_sp_2, durable: true, exclusive: false, autoDelete: false);
@@ -202,11 +207,15 @@ namespace Producer.Controllers
             #endregion
 
             #region Setup Message
+            var basicProperties = new BasicProperties();
+            // Define que a mensagem deve permanecer no servidor após reinicialização ou parada, fila fica lenta, não recomendavel
+            basicProperties.Persistent = true;
+
             var body = Encoding.UTF8.GetBytes(message);
             #endregion
 
             #region Publish Message
-            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: routingKey, body: body);
+            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: routingKey, mandatory: true, basicProperties: basicProperties, body: body);
             #endregion
 
             return Accepted(message);
@@ -218,7 +227,7 @@ namespace Producer.Controllers
         {
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
-           
+
             #region Setup
             // variaveis de definição
             string contabilidade = "contabilidade";
@@ -229,12 +238,12 @@ namespace Producer.Controllers
             //Cria o Exchange caso não exista no servidor
             await channel.ExchangeDeclareAsync(exchange: finance_exchange, type: ExchangeType.Headers);
 
-
             //cria a fila, caso não exista no servidor
             await channel.QueueDeclareAsync(queue: contabilidade, durable: true, exclusive: false, autoDelete: false);
             await channel.QueueDeclareAsync(queue: financeiro, durable: true, exclusive: false, autoDelete: false);
             await channel.QueueDeclareAsync(queue: logistica, durable: true, exclusive: false, autoDelete: false);
 
+            // Bind fila contabilidade
             await channel.QueueBindAsync(
                 queue: contabilidade,
                 exchange: finance_exchange,
@@ -244,6 +253,7 @@ namespace Producer.Controllers
                                { "setor", "contabilidade" }
                            }
             );
+            // Bind fila financeiro
             await channel.QueueBindAsync(
                 queue: financeiro,
                 exchange: finance_exchange,
@@ -253,6 +263,7 @@ namespace Producer.Controllers
                                { "setor", "financeiro" }
                            }
             );
+            // Bind fila logistica
             await channel.QueueBindAsync(
                 queue: logistica,
                 exchange: finance_exchange,
@@ -262,7 +273,7 @@ namespace Producer.Controllers
                                { "setor", "logistica" }
                            }
             );
-           
+
             #endregion
 
             #region Setup Message
@@ -270,13 +281,15 @@ namespace Producer.Controllers
             #endregion
 
             #region Publish Message
-            var props = new BasicProperties();
-            props.ContentType = "text/plain";
-            props.Headers = new Dictionary<string, object?>()
+            var basicProperties = new BasicProperties();
+            // TTL tempo de duração da mensagem na fila em milisegundos
+            basicProperties.Expiration = "10000";
+            // Headers da mensagem
+            basicProperties.Headers = new Dictionary<string, object?>()
                            {
                                { "setor", header }
                            };
-            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: string.Empty, mandatory: true, props, body);
+            await channel.BasicPublishAsync(exchange: finance_exchange, routingKey: string.Empty, mandatory: true, basicProperties: basicProperties, body);
             #endregion
 
             return Accepted(message);
@@ -288,6 +301,10 @@ namespace Producer.Controllers
         {
             using var connection = await factory.CreateConnectionAsync();
             using var channel = await connection.CreateChannelAsync();
+
+            channel.BasicAcksAsync += Channel_BasicAcksAsync;
+            channel.BasicNacksAsync += Channel_BasicNacksAsync;
+            channel.BasicReturnAsync += Channel_BasicReturnAsync;
 
             #region Setup
             // variaveis de definição
@@ -309,11 +326,33 @@ namespace Producer.Controllers
             #region Publicador
             var body = Encoding.UTF8.GetBytes(message);
             // Publica no Exchange padrão
-            await channel.BasicPublishAsync(exchange: "", routingKey: "Totalizador", body: body);
+            await channel.BasicPublishAsync(exchange: "", routingKey: "Totalizador", body: body, mandatory: true);
             #endregion
 
             return Accepted(message);
         }
 
+        private Task Channel_BasicReturnAsync(object sender, RabbitMQ.Client.Events.BasicReturnEventArgs @event)
+        {
+            // neste caso não encontrou o exchange ou fila declarada para o envio e retornou a messagem
+            // deve criar regra de negocios para tratar o caso
+            var result = @event.Body.ToArray();
+            return Task.CompletedTask;
+        }
+
+        private Task Channel_BasicNacksAsync(object sender, RabbitMQ.Client.Events.BasicNackEventArgs @event)
+        {
+            // neste caso a entrega não foi bem sucedida, deve criar regra de negocio para tratar a mensagem
+            var result = @event.DeliveryTag;
+            return Task.CompletedTask;
+        }
+
+        private Task Channel_BasicAcksAsync(object sender, RabbitMQ.Client.Events.BasicAckEventArgs @event)
+        {
+            // Confirma se a mensagem foi entregue para o Exchange sem erros
+            // neste caso esta conffirmado a entrega da mensagem ao exchange
+            var result = @event.DeliveryTag;
+            return Task.CompletedTask;
+        }
     }
 }
