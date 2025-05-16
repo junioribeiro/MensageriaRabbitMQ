@@ -54,7 +54,7 @@ consumer.ReceivedAsync += async (model, ea) =>
 };
 
 // informa ao exchange que deu tudo certo no consumo da mensagem
-await channel.BasicConsumeAsync(queueName, autoAck: true, consumer: consumer);
+await channel.BasicConsumeAsync(queueName, autoAck: false, consumer: consumer);
 
 Console.WriteLine(" Press [enter] to exit.");
 Console.ReadLine();

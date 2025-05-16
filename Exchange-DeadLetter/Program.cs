@@ -15,7 +15,7 @@ string task_queue = "Totalizador";
 await channel.ExchangeDeclareAsync(exchange: "DeadLetterExchange", type: ExchangeType.Fanout);
 await channel.QueueDeclareAsync(queue: "DeadLetterQueue", durable: true, exclusive: false, autoDelete: false);
 await channel.QueueBindAsync(queue: "DeadLetterQueue", exchange: "DeadLetterExchange", routingKey: string.Empty);
-var arguments = new Dictionary<string, object>()
+var arguments = new Dictionary<string, object?>()
 {
     { "x-dead-letter-exchange","DeadLetterExchange"}
 };

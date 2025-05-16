@@ -32,6 +32,7 @@ Console.WriteLine(" [*] Waiting for logs.");
 #region Setup Consumer
 // Worker real
 var consumer = new AsyncEventingBasicConsumer(channel);
+// infroma pra pegar uma mensagem por vez ao invez de um lote
 await channel.BasicQosAsync(0, 1, false);
 consumer.ReceivedAsync += async (model, ea) =>
 {
